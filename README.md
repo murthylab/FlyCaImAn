@@ -38,6 +38,9 @@ For saving figures install:
 For stitching Z-stacks:
 - [fiji](https://imagej.net/Fiji/Downloads), make sure you have the [stitching plugin](https://imagej.net/Image_Stitching) and [NIfTI plugin](https://imagej.nih.gov/ij/plugins/nifti.html)
 
+For interfacing with a cluster and ROI-related functions:
+- download pu_cluster_interface (it requires the user defined temporary folder to save job parameters)[https://github.com/dpacheco0921/pu_cluster_interface](https://github.com/dpacheco0921/pu_cluster_interface)
+
 # Usage
 
 To use this package
