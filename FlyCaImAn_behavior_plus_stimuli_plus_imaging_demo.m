@@ -122,3 +122,20 @@ cstpar.idp_run_flag = 1;
 cstpar.fshift = [6 6];
 
 batch_formatstacks(FolderName, FileName, cstpar)
+
+%% 7) Make DFoF, SNR, DF, and maxF videos:
+
+FolderName = '20200909'; FileName = [];
+ipars.metadata_suffix = '_metadata.mat';
+ipars.rawdata_suffix = '_rawdata.mat';
+ 
+ipars.range = [0 1; 0 1; 0 1; 0 3];
+ipars.axisratio = 1;
+ipars.baseline_tp = 1:60;
+ipars.dir_depth = 1;
+ipars.df_flag = [0 1 2 3];
+ipars.sign2use = 0;
+ipars.redo = 1;
+ipars.axisratio = 0;
+
+batch_plot_df_dfof_maxf(FolderName, FileName, ipars)

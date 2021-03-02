@@ -8,7 +8,7 @@ function iXYZres = nrrdread_res(meta)
 %   meta: nrrd metadata as output from nrrdread.m
 %
 % Returns:
-%   iXYZres: pixel resolution
+%   iXYZres: pixel resolution ('x y z', 'width height depth')
 
 fres = 10^4; % max resolution
 init = strfind(meta.spacedirections, '(');

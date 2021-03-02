@@ -4,3 +4,6 @@ toolbox/tiff2nrrd/zstacktiff2mat_maninput.m
 *.ffs_db
 *.asv
 *.ffs_lock
+*.ffs_db
+toolbox/utilitites/user_info/fiji_fullpath.m
+toolbox/utilitites/timing/user_info/fiji_fullpath.m

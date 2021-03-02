@@ -13,10 +13,10 @@ function batch_gen_fictrac_input_files(...
 %   FileName: name of file to run
 %   setupID: ID of setup used
 %       (Alevel_2p1, default)
-%       (bezos_2p, etc)
+%       (bezos_2p, Alevel_behav)
 %   im_mode: mode of finding input files
 %       (0, use tif)
-%       (1, extract rawim from mp4)
+%       (1, extract rawim from mp4/avi)
 %
 % Notes:
 % Based on a function written by Dudi Deutsch.
@@ -61,9 +61,10 @@ fo2reject = {'.', '..', 'preprocessed', ...
 cDir = pwd;
 
 % add setup and corresponding vfov
-allsetupIDs = {'bezos_2p', 'Alevel_2p1'};
+allsetupIDs = {'bezos_2p', 'Alevel_2p1', 'Alevel_behav'};
 settingpersetup(1).vfov = deg2rad(2.15);
 settingpersetup(2).vfov = deg2rad(2.6097);
+settingpersetup(3).vfov = deg2rad(3.8183);
 
 % select settings given an input setup
 settingpersetup = ...
@@ -140,20 +141,29 @@ if im_mode == 0
 elseif im_mode == 1
     
     % use video to extract a single frame for mask generation
-    vid2use = rdir('*.mp4');
+    prefixstr = '.mp4';
+    vid2use = rdir(['*', prefixstr]);
     vid2use = {vid2use.name}';
+    
+    if isempty(vid2use)
+        prefixstr = '.avi';
+        vid2use = rdir(['*', prefixstr]);
+        vid2use = {vid2use.name}';
+        vid2use = str2rm({'-debug.avi'}, vid2use);
+    end
+    
     vid2use = str2match(fname, vid2use);
 
     for i = 1:numel(vid2use)
         
         if i == 1
-           preim = strrep(vid2use{i}, '_vid.mp4', '_maskim.tiff');
+           preim = strrep(vid2use{i}, ['_vid', prefixstr], '_maskim.tiff');
         else
-           preim = strrep(vid2use{i - 1}, '_vid.mp4', '_maskim.tiff');
+           preim = strrep(vid2use{i - 1}, ['_vid', prefixstr], '_maskim.tiff');
         end
         
-        rawim = strrep(vid2use{i}, '_vid.mp4', '_rawim.tiff');
-        maskim = strrep(vid2use{i}, '_vid.mp4', '_maskim.tiff');
+        rawim = strrep(vid2use{i}, ['_vid', prefixstr], '_rawim.tiff');
+        maskim = strrep(vid2use{i}, ['_vid', prefixstr], '_maskim.tiff');
         
         vid2load = VideoReader(vid2use{i});
         frame = read(vid2load, 1);
@@ -182,7 +192,7 @@ elseif im_mode == 1
             
             % 2) generate 'calibration-transform.dat'
             oDir = [pwd, filesep, strrep(vid2use{i}, ...
-                '_vid.mp4', '_calibration-transform.dat')];
+                ['_vid', prefixstr], '_calibration-transform.dat')];
             gen_fictrac_calibration_transform(...
                 sphere_cx_px, sphere_cy_px, ...
                 sphere_radius_px, width_pix, ...
@@ -196,7 +206,7 @@ elseif im_mode == 1
             end
 
             oDir = [pwd, filesep, strrep(vid2use{i}, ...
-                '_vid.mp4', '_calibration-transform.dat')];
+                ['_vid', prefixstr], '_calibration-transform.dat')];
             
             if ~strcmp(strrep(fullfile(pwd, preim), '_maskim.tiff', ...
                     '_calibration-transform.dat'), oDir)

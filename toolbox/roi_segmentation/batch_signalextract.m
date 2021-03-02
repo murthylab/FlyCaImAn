@@ -29,8 +29,8 @@ setup_parpool(p.serverid, p.corenum);
 
 % Selecting folders
 f2run = dir;
-f2run = GS_str2match(p.FolderName, f2run);
-f2run = GS_str2rm(p.fo2reject, f2run);
+f2run = str2match(p.FolderName, f2run);
+f2run = str2rm(p.fo2reject, f2run);
 f2run = {f2run.name};
 fprintf(['Running n-folders : ', num2str(numel(f2run)), '\n'])
 
@@ -55,8 +55,8 @@ global p
 
 % Run all flies per folder
 f2run = rdir(['.', p.sep, '*', p.fisuffix, '.mat']);
-f2run = GS_str2rm(p.fi2reject, f2run);
-f2run = GS_str2match(fname, f2run);
+f2run = str2rm(p.fi2reject, f2run);
+f2run = str2match(fname, f2run);
 f2run = {f2run.name};
 f2run = strrep(f2run, ['.', p.sep], '');
 f2run = strrep(f2run, [p.fisuffix, '.mat'], '');

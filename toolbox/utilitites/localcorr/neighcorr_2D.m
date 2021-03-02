@@ -46,6 +46,7 @@ if memmaped
     end
     
     fprintf(' ')
+    
     % Correct interseccions
     rho = seampatch(patches, temp_rho, sizY);
     fprintf('\n')
@@ -117,3 +118,115 @@ rho(isnan(rho)) = 0;
 
 end
 
+function rho = seampatch(patches, rho_i, dims)
+% seampatch: function that merges partially computed patches of a matrix
+%   matrix
+%
+% Usage:
+%   rho = seampatch(patches, rho_i, dims)
+%
+% Args:
+%   patches: X,Y,Z patches
+%   rho_i: M x N matrix, cross-correlation with adjacent pixel per patch
+%   dims: dimensions of the full matrix
+
+% Final matrix
+rho = zeros(dims(1:end-1));
+
+% get unique column and row values
+for p_i = 1:length(patches)
+    rowidx(p_i, :) = [patches{p_i}(1), patches{p_i}(2)];
+    colidx(p_i, :) = [patches{p_i}(3), patches{p_i}(4)];
+    if length(patches{p_i}) == 6
+        depthidx(p_i, :) = [patches{p_i}(5), patches{p_i}(6)];
+    end
+end
+rownum = sort(unique(rowidx(:, 1)));
+colnum = sort(unique(colidx(:, 1)));
+if exist('depthidx', 'var')
+    depthnum = sort(unique(depthidx(:, 1)));
+end
+
+% get cropped matrix from patches
+for p_ii = 1:numel(patches)
+    
+    % Prunning edges (lateral)
+    lsize = size(rho_i{p_ii});
+    
+    if lsize(2) ~= dims(2)
+        
+        if colidx(p_ii, 1) == colnum(1)
+            yii = colidx(p_ii, 1):(colidx(p_ii, 2)-1);
+            yi = 1:(lsize(2)-1);             
+        elseif colidx(p_ii, 1) == colnum(end)
+            yii = (colidx(p_ii, 1)+1):colidx(p_ii, 2);
+            yi = 2:lsize(2);
+        else
+            yii = (colidx(p_ii, 1)+1):(colidx(p_ii, 2)-1);
+            yi = 2:(lsize(2)-1);
+        end
+        
+    else
+        
+       yii = 1:dims(2);
+       yi = 1:lsize(2);
+       
+    end
+    
+    % Prunning edges (vertical)
+    if lsize(1) ~= dims(1)
+        
+        if rowidx(p_ii, 1) == rownum(1)
+            xii = rowidx(p_ii, 1):(rowidx(p_ii, 2)-1);
+            xi = 1:(lsize(1)-1);            
+        elseif rowidx(p_ii, 1) == rownum(end)
+            xii = (rowidx(p_ii, 1)+1):rowidx(p_ii, 2);
+            xi = 2:lsize(1);
+        else
+            xii = (rowidx(p_ii, 1)+1):(rowidx(p_ii, 2)-1);
+            xi = 2:(lsize(1)-1);
+        end
+        
+    else
+        
+       xii = 1:dims(1);
+       xi = 1:lsize(1);
+       
+    end
+    
+    % prunning planes (depth)
+    if exist('depthidx', 'var')
+        
+        if length(lsize) == 3 && lsize(3) ~= dims(3)
+            
+            if depthidx(p_ii, 1) == depthnum(1)
+                zii = depthidx(p_ii, 1):(depthidx(p_ii, 2)-1);
+                zi = 1:(lsize(1)-1);            
+            elseif depthidx(p_ii, 1) == depthnum(end)
+                zii = (depthidx(p_ii, 1)+1):depthidx(p_ii, 2);
+                zi = 2:lsize(1);
+            else
+                zii = (depthidx(p_ii, 1)+1):(depthidx(p_ii, 2)-1);
+                zi = 2:(lsize(1)-1);
+            end
+            
+        else
+            
+           zii = 1:dims(1);
+           zi = 1:lsize(1);
+           
+        end
+        
+    end
+    
+    if exist('depthidx', 'var')
+        rho(xii, yii, zii) = rho_i{p_ii}(xi, yi, zi);
+    else
+        rho(xii, yii) = rho_i{p_ii}(xi, yi);
+    end
+    
+    fprintf('+')
+    
+end
+
+end

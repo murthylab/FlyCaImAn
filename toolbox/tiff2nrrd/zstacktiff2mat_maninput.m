@@ -17,26 +17,33 @@ find(isinf(M(:, 2)))'
 pi = [];
 pi.lag = 0.01;
 pi.sizY = [size(avgim, 1), size(avgim, 2), size(avgim, 3)];
-pi.range = [0 600];
+pi.range = [0 300];
 
 slice3Dmatrix(avgim(:, :, :, 1), pi)
+
+%pi.range = [0 150];
 slice3Dmatrix(avgim(:, :, :, 2), pi)
 
 % 3.2) selected planes
-planes2plot = 10:25;
+planes2plot = 130:140;
 pi.lag = 0.5;
+%pi.lag = 0.01;
 pi.sizY = [size(avgim, 1), size(avgim, 2), length(planes2plot)];
+%pi.range = [0 130];
+pi.range = [0 150];
 
 slice3Dmatrix(avgim(:, :, planes2plot, 1), pi)
 slice3Dmatrix(avgim(:, :, planes2plot, 2), pi)
 
 %% 4) replace planes (using info from 2) and 3))
 
+%plane2replace = planes2plot([]);
 plane2replace = find(isinf(M(:, 1)))';
 channel2use = 1;
 avgim(:, :, :, channel2use) = ...
     framegapfill(plane2replace, avgim(:, :, :, channel2use));
 
+%plane2replace = planes2plot([]);
 plane2replace = find(isinf(M(:, 2)))';
 channel2use = 2;
 avgim(:, :, :, channel2use) = ...

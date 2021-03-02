@@ -35,6 +35,22 @@ For processing of behavior videos with fictrac this pipeline requires the follow
 For saving figures install:
 - [export_fig](https://github.com/altmany/export_fig)
 
+For stitching Z-stacks:
+- [fiji](https://imagej.net/Fiji/Downloads), make sure you have the [stitching plugin](https://imagej.net/Image_Stitching) and [NIfTI plugin](https://imagej.nih.gov/ij/plugins/nifti.html)
+
+# Usage
+
+To use this package
+1) Copy and edit fiji_fullpathedit.m (see that file for details), and save as fiji_fullpath.m.
+
+For examples see all the demos:
+FlyCaImAn_demo.m
+FlyCaImAn_behavior_only_demo.m
+FlyCaImAn_behavior_plus_stimuli_demo.m
+FlyCaImAn_behavior_plus_stimuli_plus_imaging_demo.m
+FlyCaImAn_imaging_only_demo.m
+FlyCaImAn_Zstack_demo.m
+
 # Acknowledgements
 
 Special thanks to:

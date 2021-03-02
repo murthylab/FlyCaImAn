@@ -21,8 +21,10 @@ function batch_CaROISegSer(fname, inputparams, ...
 %   jobpart: type of job to run
 %       1) run roi segmentation for patches of whole volume
 %       2) compile patches
+%       3) runs 1) and extracts output variables as in 2) for each single
+%          file
+%       4) compile without merging across planes
 %       (default, 1)
-%       3) extract processed signal
 %   memreq: RAM memory to request
 %       (deafult, 48)
 %   patchtype: flag on how to define patches
@@ -170,6 +172,17 @@ end
 % get scratch (temporary) and bucket (permanent) directories
 [~, username, ~, temporary_dir, ~, userdomain] = ...
     user_defined_directories(serverid);
+
+if ~exist(temporary_dir, 'dir')
+    
+    repo_temp_folder = strrep(which('server_interface'), ...
+        'server_interface.m', '');
+    disp([temporary_dir, ' directory does not exist using pu_cluster_interface repo folder ', ...
+        repo_temp_folder, ' instead'])
+    temporary_dir = repo_temp_folder;
+    
+end
+
 if ~exist([temporary_dir, 'jobsub', filesep, 'roirel'], 'dir')
     mkdir([temporary_dir, 'jobsub', filesep, 'roirel']);
 end

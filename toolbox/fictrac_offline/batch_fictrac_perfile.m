@@ -113,10 +113,19 @@ function runperfolder(fname, fictracpars)
 %   fictracpars: input parameters
 
 % find all videos to process
-vid2run = rdir('*.mp4');
+prefixstr = '.mp4';
+vid2run = rdir(['*', prefixstr]);
 vid2run = {vid2run.name}';
+
+if isempty(vid2run)
+    prefixstr = '.avi';
+    vid2run = rdir(['*', prefixstr]);
+    vid2run = {vid2run.name}';
+    vid2run = str2rm({'-debug.avi'}, vid2run);
+end
+
 vid2run = str2match(fname, vid2run);
-vid2run = strrep(vid2run, '_vid.mp4', '');
+vid2run = strrep(vid2run, ['_vid', prefixstr], '');
 
 fprintf(['Running n-videos : ', num2str(numel(vid2run)), '\n'])
 
@@ -139,7 +148,7 @@ for i = 1:numel(vid2run)
         edit_FicTrac_config(config_file, ...
             vid2run{i}, fictracpars.do_search_flag, ...
             fictracpars.load_template_flag, ...
-            fictracpars.template_fn)
+            fictracpars.template_fn, prefixstr)
 
         command2run = ['FicTrac ', temp_config_file];
 
@@ -166,7 +175,7 @@ end
 
 function edit_FicTrac_config(config_file, ...
     vid_name, do_search_flag, load_template_flag, ...
-    template_name)
+    template_name, prefixstr)
 % edit_FicTrac_config: edit config_file to run each video file
 %
 % Usage:
@@ -183,6 +192,7 @@ function edit_FicTrac_config(config_file, ...
 %       (default, pwd)
 %   template_fn: template image to use
 %       (default, [])
+%   prefixstr: video prefix
 
 % load text file
 fid = fopen(config_file, 'r');
@@ -198,7 +208,7 @@ end
 fclose(fid);
 
 % replace field
-A{2} = ['input_vid_fn        ', vid_name, '_vid.mp4'];
+A{2} = ['input_vid_fn        ', vid_name, '_vid' prefixstr];
 A{3} = ['output_fn           ', vid_name, '_fictrac.txt'];
 A{4} = ['mask_fn             ', vid_name, '_maskim.tiff'];
 A{5} = ['transform_fn        ', vid_name, '_calibration-transform.dat'];
