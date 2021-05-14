@@ -13,10 +13,12 @@ function batch_plot_stitch_results(Filename, oDir, iparams)
 %           (default, '_metadata.mat')
 %       (range: range for plotting)
 %           (default, [0 1])
-%       (refcha: reference channel)
+%       (refcha: reference channel to use for plotting overlay)
 %           (default, 1)
 %       (dir_depth: depth of directory search)
 %           (default, 0)
+%       (axisratio: flag to use equal axis or not)
+%
 % Notes
 
 % default params
@@ -25,6 +27,7 @@ metpars.fmetsuffix = '_prosmetadata.mat';
 metpars.range = [0 1];
 metpars.refcha = 1;
 metpars.dir_depth = 0;
+metpars.axisratio = 1;
 
 if ~exist('Filename', 'var')
     Filename = [];
@@ -68,7 +71,7 @@ end
 fprintf(['Generating plots for ', ...
     num2str(numel(filename)), ' files\n'])
 
-% plot sMod results
+% plot stitch results
 for i = 1:numel(filename)
 
     load([iDir{i}, filesep, filename{i}, ...

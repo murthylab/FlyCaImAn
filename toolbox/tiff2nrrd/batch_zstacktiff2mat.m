@@ -46,6 +46,8 @@ function batch_zstacktiff2mat(FolderName, FileName, iparams)
 %           (default: 'zt', alternative 'tz')
 %       (debug_flag: flag to evaluate results prior to saving)
 %           (default: 1)
+%       (maxtiff2load: maximun tiffs to load per session)
+%           (default: [])
 %
 % Notes:
 %   FieldOfView needs to be define for each setup (see batch_tiff2mat.m)
@@ -71,6 +73,7 @@ zt2m.hbins = -10^3:3*10^3;
 zt2m.oDir = [pwd, filesep, 'rawtiff'];
 zt2m.dimOrder = 'zt';
 zt2m.debug_flag = 0;
+zt2m.maxtiff2load = [];
 
 if ~exist('FolderName', 'var'); FolderName = []; end
 if ~exist('FileName', 'var'); FileName = []; end
@@ -233,7 +236,12 @@ mat_name = [Basename{1}, '_', ...
     num2str(AnimalNum(1)), '_Zstack_', ...
     num2str(TrialNum(1))];
 
-tif_num = numel(rdir([tif_name, '*.tif']));
+% define the number of tiffs to load per session/experiment
+if isempty(zt2m.maxtiff2load)
+    tif_num = numel(rdir([tif_name, '*.tif']));
+else
+    tif_num = zt2m.maxtiff2load;
+end
 
 % tif start number
 if exist([tif_name, ...
@@ -302,6 +310,16 @@ for i = 1:size(Data, 4)
     temp_data = temp_data(:);
     [hist_pre(:, i), ~] = hist(temp_data, zt2m.hbins);
     clear temp_data
+end
+
+if zt2m.debug_flag
+    
+    % plot histograms with current settings (zt2m.hbins)
+    plot_histogram(zt2m.hbins, hist_pre, hist_pre, zt2m.oDir, 'test')
+    
+    keyboard
+    % pause to decide if manually update 'zt2m.shift_f' and/or 'zt2m.hbins'
+    
 end
 
 % shift distribution by 5 values to the right and make negative values 0

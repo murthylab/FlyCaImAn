@@ -16,8 +16,18 @@ function nrrd_edit(FolderName, FileName, iparams)
 %           (default, [])
 %       (planes2zero: set of planes to set to zero)
 %           (default, [])
+%       (cuboid2erode:  creates a 3-D cuboidal structuring element of size [m n p])
+%           (default, [])
+%       (medfilt: median filter)
+%           (default, [3 3 1])
 %       (dir_depth: depth of directory search)
 %           (default, 0)
+%       (flip_axis: axis to flip)
+%           (default, [0 0 0], 'height witdh depth')
+%       (save_mirror: save also mirror image on selected axis)
+%           (default, [0 0 0], 'height witdh depth')
+%       (save_mirror_str: string to replace for naming mirror image)
+%           (default, {'w', 'mw'}, 'height witdh depth')
 
 if ~exist('FileName','var')
     FileName = [];
@@ -32,7 +42,12 @@ ipars.numtype = [];
 ipars.compression = [];
 ipars.fsuffix = '.nrrd';
 ipars.planes2zero = [];
+ipars.cuboid2erode = [];
+ipars.medfilt = [];
 ipars.dir_depth = 0;
+ipars.flip_axis = [0 0 0];
+ipars.save_mirror = [0 0 0];
+ipars.save_mirror_str = {'w', 'ymw'; 'w', 'xmw'; 'w', 'zmw'};
 
 % update variables
 if ~exist('iparams', 'var'); iparams = []; end
@@ -95,8 +110,20 @@ function editnrrd(filename, ipars)
 %           (default, [])
 %       (compression: type of compresssion (gzip, or raw))
 %           (default, [])
+%       (planes2zero: set of planes to set to zero)
+%           (default, [])
+%       (cuboid2erode:  creates a 3-D cuboidal structuring element of size [m n p])
+%           (default, [])
+%       (medfilt: median filter)
+%           (default, [3 3 1])
 %       (dir_depth: depth of directory search)
 %           (default, 0)
+%       (flip_axis: axis to flip)
+%           (default, [0 0 0], 'height witdh depth')
+%       (save_mirror: save also mirror image on selected axis)
+%           (default, [0 0 0], 'height witdh depth')
+%       (save_mirror_str: string to replace for naming mirror image)
+%           (default, {'w', 'mw'}, 'height witdh depth')
 
 % load image
 [Data, meta] = nrrdread(filename);
@@ -124,10 +151,17 @@ else
     
 end
 
+% set come planes to zero
 if ~isempty(ipars.planes2zero)
     Data(:, :, ipars.planes2zero) = 0;
 end
 
+% do median filtering
+if ~isempty(ipars.medfilt)
+    Data = medfilt3(double(Data), ipars.medfilt);
+end
+
+% apply numeric type change
 switch numtype
 
     case 'uint16'
@@ -138,6 +172,29 @@ switch numtype
 
         Data = mat2uint8(Data, 1);
 
+end
+
+% erode image
+if ~isempty(ipars.cuboid2erode)
+    
+    % fill in holes
+    mask_ = medfilt3(double(Data > 0), [7 7 1]);
+    
+    mask_ = imfill(mask_ > 0, 26, 'holes');
+    
+    % erode edge planes
+    mask_ = imerode(mask_, strel('cuboid', ipars.cuboid2erode));
+    
+    % fill in holes
+    mask_ = imfill(mask_, 26, 'holes');
+    
+    Data(mask_ == 0) = 0;
+    
+    % to visualize use
+    % pi = [];
+    % pi.range = [0 prctile(double(Data(:)), 98)];
+    % slice3Dmatrix(double(Data), pi)
+    
 end
 
 fprintf(['Saving nrrd as ', numtype, '\n'])
@@ -154,6 +211,24 @@ end
 
 fprintf(['Saving nrrd as ', compressiontype, '\n'])
 
+% flip axis
+for i = 1:3
+    if ipars.flip_axis(i)
+        Data = flip(Data, i);
+    end
+end
+
 nrrdWriter(filename, Data, ipars.XYZres, [0 0 0], compressiontype);
+
+% save, in addition, mirror images of defined axis
+for i = 1:3
+    if ipars.save_mirror(i)
+        
+        Data_m = flip(Data, i);
+        nrrdWriter(strrep(filename, ipars.save_mirror_str{i, 1}, ipars.save_mirror_str{i, 2}), ...
+            Data_m, ipars.XYZres, [0 0 0], compressiontype);
+        
+    end
+end
 
 end

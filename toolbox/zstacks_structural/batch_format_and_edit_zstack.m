@@ -37,7 +37,8 @@ function batch_format_and_edit_zstack(FolderName, FileName, iparams)
 %       (zflipgate: gate to flip orientation in Z)
 %           (1, default)
 %       (mirror_flag: flag to also save mirror image (_mw))
-%           (1, default)
+%           (1, default, mirror in x)
+%           (2, default, mirror in y)
 %       (im_format: image format ".nrrd" or ".nii")
 %           (default, '.nrrd')
 %       (dir_depth: depth of directory search)
@@ -162,50 +163,67 @@ end
 
 filename_o_name = strrep(filename, [z2spars.fisuffix, z2spars.im_format], '');
 
-if ~exist([oDir, filename_o_name, smooth_str, '_w_01', z2spars.im_format], 'file') ...
-        || ~exist([oDir, smooth_str, filename_o_name, '_wm_01', z2spars.im_format], 'file') ...
-        || ~exist([oDir, smooth_str, filename_o_name, '_w_02', z2spars.im_format], 'file') ...
-        || ~exist([oDir, smooth_str, filename_o_name, '_wm_02', z2spars.im_format], 'file') ...
-        || ~exist([oDir, smooth_str, filename_o_name, '_w_03', z2spars.im_format], 'file') ...
-        || ~exist([oDir, smooth_str, filename_o_name, '_wm_03', z2spars.im_format], 'file') ...
-        ||~exist([oDir, smooth_str, filename_o_name, '_w_04', z2spars.im_format], 'file') ...
-        || ~exist([oDir, smooth_str, filename_o_name, '_wm_04', z2spars.im_format], 'file') ...
-        || z2spars.redo
+% load image
+fullfilename = fullfile([full_dir_path, filesep, filename]);
 
-    % 1.1) reshape Data (necessary when it has 2 channels, all the cases)
-    fprintf('reshaping data, ')
+if strcmp(z2spars.im_format, '.nrrd')
+
+    [Data, meta] = nrrdread(fullfilename);
+    iXYZres = nrrdread_res(meta);
+
+    % reshape flat image to X Y channel and Z
+    siz = size(Data);
+    Data = double(reshape(Data, ...
+        [siz(1:2), z2spars.nchannels, ...
+        prod(siz(3:end))/(z2spars.nchannels)]));
+
+    % reorder to X Y Z and channel
+    Data = permute(Data, [1 2 4 3]);
+
+elseif strcmp(z2spars.im_format, '.nii')
+
+    Data = niftiread(fullfilename);
+    nifti_info = niftiinfo(fullfilename);
+    iXYZres = nifti_info.PixelDimensions;
+    iXYZres = iXYZres(1:3);
+
+    % flip XY and channel to get X Y Z and channel
+    Data = permute(Data, [2 1 3 5 4]);
+    Data = double(Data);
+
+end
+
+% 1.1) reshape Data (necessary when it has 2 channels, all the cases)
+fprintf('reshaping data, ')
+
+% reduce number of channels or reorder channels prior to splitting them
+Data = Data(:, :, :, z2spars.refcha);
+
+% check if files already exist
+status_ = [];
+k = 1;
+
+for t = 1:size(Data, 4)   
     
-    fullfilename = fullfile([full_dir_path, filesep, filename]);
+    oDir_ = [oDir, 'images_ch', num2str(t), filesep];
     
-    if strcmp(z2spars.im_format, '.nrrd')
-                
-        [Data, meta] = nrrdread(fullfilename);
-        iXYZres = nrrdread_res(meta);
-        
-        % reshape flat image to X Y channel and Z
-        siz = size(Data);
-        Data = double(reshape(Data, ...
-            [siz(1:2), z2spars.nchannels, ...
-            prod(siz(3:end))/(z2spars.nchannels)]));
-
-        % reorder to X Y Z and channel
-        Data = permute(Data, [1 2 4 3]);
-        
-    elseif strcmp(z2spars.im_format, '.nii')
-
-        Data = niftiread(fullfilename);
-        nifti_info = niftiinfo(fullfilename);
-        iXYZres = nifti_info.PixelDimensions;
-        iXYZres = iXYZres(1:3);
-        
-        % flip XY and channel to get X Y Z and channel
-        Data = permute(Data, [2 1 3 5 4]);
-        Data = double(Data);
-        
+    if ~exist(oDir_, 'dir')
+        mkdir(oDir_)
     end
     
-    % reduce number of channels or reorder channels prior to splitting them
-    Data = Data(:, :, :, z2spars.refcha);
+    lname = [oDir_, filename_o_name, smooth_str, ...
+        '_w_0', num2str(t), z2spars.im_format];
+    status_(k) = ~exist(lname, 'file');
+    k = k + 1;
+
+    lname = [oDir_, filename_o_name, smooth_str, ...
+        '_wm_0', num2str(t), z2spars.im_format];
+    status_(k) = ~exist(lname, 'file');
+    k = k + 1;
+    
+end
+
+if sum(status_) || z2spars.redo
    
     % 1.2) flip in z axis
     if z2spars.zflipgate
@@ -265,7 +283,7 @@ if ~exist([oDir, filename_o_name, smooth_str, '_w_01', z2spars.im_format], 'file
     for t = 1:size(Data, 4)
         fprintf(['saving images channel ', num2str(t), ','])
         
-        oDir_ = [oDir, filesep, 'images_ch', num2str(t), filesep];
+        oDir_ = [oDir, 'images_ch', num2str(t), filesep];
         
         if ~exist(oDir_, 'dir')
             mkdir(oDir_)
@@ -302,7 +320,12 @@ if ~exist([oDir, filename_o_name, smooth_str, '_w_01', z2spars.im_format], 'file
         % mirror
         if z2spars.mirror_flag
             
-            tData = flip(tData, 2);
+            if z2spars.mirror_flag == 1
+                tData = flip(tData, 2);
+            elseif z2spars.mirror_flag == 2
+                tData = flip(tData, 1);
+            end
+            
             lname = [oDir_, filename_o_name, ...
                 smooth_str, '_wm_0', num2str(t), z2spars.im_format];
             

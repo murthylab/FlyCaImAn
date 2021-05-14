@@ -20,6 +20,7 @@ z2spars.im_direction = 1;
 z2spars.im_format = {'.nrrd', '.nii'};
 z2spars.dir_depth = 1;
 z2spars.nchannels = 2;
+z2spars.oDir = [];
 
 % update variables
 if ~exist('FolderName', 'var') || isempty(FolderName)
@@ -88,9 +89,23 @@ function im_convert(filename, iDir, z2spars)
 
 filename_in = fullfile([iDir, filesep, filename]);
 
+% generate target folder
+oDir = z2spars.oDir;
+
+if isempty(oDir)
+    [~, oDir] = split_path(filename_in);
+end
+
+if ~strcmp(oDir(end), filesep)
+    oDir = [oDir, filesep];
+end
+
+if ~exist(oDir, 'dir')
+    mkdir(oDir)
+end
+
 if strcmp(z2spars.im_format, '.nrrd')
     
-    filename_out = strrep(filename_in, '.nrrd', '.nii');
     [Data, meta] = nrrdread(filename_in);
     iXYZres = nrrdread_res(meta);
 
@@ -110,31 +125,38 @@ if strcmp(z2spars.im_format, '.nrrd')
         Data = reshape(Data, [siz(1:2), siz(3), 1, siz(4)]);
     end
     
+    filename_out = strrep(filename_in, '.nrrd', '.nii');
+    [filename_out, ~] = split_path(filename_out);
+    
     % create initial
-    niftiwrite(mat2uint16(Data, 0), filename_out);
+    niftiwrite(mat2uint16(Data, 0), [oDir, filename_out]);
     
     % readout and edit metadata
-    Data = niftiread(filename_out);
+    Data = niftiread([oDir, filename_out]);
     
-    nifti_info = niftiinfo(filename_out);
+    nifti_info = niftiinfo([oDir, filename_out]);
     nifti_info.SpaceUnits = 'Micron';
     nifti_info.Datatype = 'uint16';
     nifti_info.ImageSize = size(Data);
     nifti_info.PixelDimensions(1:3) = iXYZres;
 
-    niftiwrite(mat2uint16(Data, 0), filename_out, nifti_info);
+    niftiwrite(mat2uint16(Data, 0), [oDir, filename_out], nifti_info);
 
 elseif strcmp(z2spars.im_format, '.nii')
-
-    filename_out = strrep(filename_in, '.nii', '.nrrd');
 
     Data = niftiread(filename_in);
     nifti_info = niftiinfo(filename_in);
     iXYZres = nifti_info.PixelDimensions;
     iXYZres = iXYZres(1:3);
-
+    
     % flip XY and channel to get Y X Z and channel
-    Data = permute(Data, [2 1 3 5 4]);
+    siz = size(Data);
+    
+    if numel(siz) == 4
+        Data = permute(Data, [2 1 3 5 4]);
+    else
+        Data = permute(Data, [2 1 3]);
+    end
     
     siz = size(Data);
     
@@ -142,7 +164,10 @@ elseif strcmp(z2spars.im_format, '.nii')
         Data = reshape(Data, [siz(1:2), prod(siz(3:4))]);
     end
     
-    nrrdWriter(filename_out, mat2uint16(Data, 0), ...
+    filename_out = strrep(filename_in, '.nii', '.nrrd');
+    [filename_out, ~] = split_path(filename_out);
+    
+    nrrdWriter([oDir, filename_out], mat2uint16(Data, 1), ...
         iXYZres, [0 0 0], 'gzip');
                 
 end

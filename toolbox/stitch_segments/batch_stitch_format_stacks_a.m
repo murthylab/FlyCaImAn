@@ -73,9 +73,10 @@ function batch_stitch_format_stacks_a(FolderName, FileName, iparams)
 %
 % Notes:
 % How to orient consecutive planes and stacks 
-%   (particularly to match reference orientation: ventral-dorsal)
-%   Imaging from the central brain dorsal
-%      (need to be inverted to have a ventral-dorsal orientation)
+%   (particularly to match brain atlas orientation: 
+%       anterior-posterior (central brain) or ventral-dorsal (VNC))
+%   Imaging from the central brain posterior
+%      (need to be inverted to have a anterior-posterior orientation)
 %   Imaging from the VNC from ventral side already has a ventral-dorsal orientation.
 
 cspfa = [];

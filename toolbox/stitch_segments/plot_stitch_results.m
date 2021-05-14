@@ -13,6 +13,7 @@ function plot_stitch_results(wDat, ...
 %   iparams: parameters to update
 %       (range: range of intensity to display)
 %       (refcha: reference channel (red channel == 1, green channel == 2))
+%       (axisratio: flag to use equal axis or not)
 
 % default params
 ip.range = [0 1];
@@ -22,7 +23,12 @@ if ~exist('iparams', 'var'); iparams = []; end
 ip = loparam_updater(ip, iparams);
 
 % 1) plot overlay of edges
-im = double(wDat.RedChaMean);
+if ip.refcha == 1
+    im = double(wDat.RedChaMean);
+elseif ip.refcha == 2
+    im = double(wDat.GreenChaMean);
+end
+
 im = im - prctile(im(:), 1);
 im = im/prctile(im(:), 99);
 
@@ -47,9 +53,14 @@ for i = unique(stack_idx)'
     try
         
         % start and end of stacks to stitch
-        idx_i = find(stack_idx == i, 1, 'first');
-        idx_e = find(stack_idx == i + 1, 1, 'last');
-
+        if strcmp(wDat.vOrient, 'invert')
+            idx_i = find(stack_idx == i, 1, 'first');
+            idx_e = find(stack_idx == i + 1, 1, 'last');
+        else
+            idx_i = find(stack_idx == i, 1, 'last');
+            idx_e = find(stack_idx == i + 1, 1, 'first');
+        end
+        
         im_1 = mat2gray(im(:, :, idx_i), ip.range);
         im_2 = mat2gray(im(:, :, idx_e), ip.range);
 
@@ -71,6 +82,10 @@ end
 ip.vgate = 1;
 ip.frate = 1;
 ip.vname = [oDir, filesep, fname, '_red'];
+ip.axisratio = 1;
+
+if ~exist('iparams', 'var'); iparams = []; end
+ip = loparam_updater(ip, iparams);
 
 im = double(wDat.RedChaMean);
 im = im - prctile(im(:), 1);

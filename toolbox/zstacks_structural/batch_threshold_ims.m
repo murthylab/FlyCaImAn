@@ -33,6 +33,12 @@ function batch_threshold_ims(FolderName, FileName, iparams)
 %           (0, default)
 %       (medfilt: filter)
 %           ([3 3 1], default)
+%       (sig: kernel sigma for gaussian smoothing)
+%           ([10 10 5], default)
+%       (siz: kernel size for gaussian smoothing)
+%           ([20 20 10], default)
+%       (redo: redo flag)
+%           ([0], default)
 %
 % Todo
 %   generalize to nii
@@ -48,6 +54,9 @@ ipars.z_slices_per_int_ths = [0 100 130 170 200 240];
 ipars.default_planes = [10 30 50 70 100 130 170 200 230];
 ipars.medfilt_flag = 0;
 ipars.medfilt = [3 3 1];
+ipars.sig = [10 10 5];
+ipars.siz = [20 20 10];
+ipars.redo = 0;
 
 % update variables
 if ~exist('FolderName', 'var') || isempty(FolderName)
@@ -127,49 +136,53 @@ if ~exist(oDir, 'dir')
     mkdir(oDir)
 end
 
+if strcmp(oDir(end), filesep)
+    oDir = oDir(1:end-1);
+end
+
 % remove '.nrrd' from image
 if contains(filename, ipars.im_format)
     filename = strrep(filename, ipars.im_format, '');
 end
 
-% load nrrd and smooth
-[Data, meta] = nrrdread([full_dir_path, filesep, filename, ipars.im_format]);
+if ~exist([oDir, filesep, filename, ipars.im_format], 'file') || ipars.redo
+    
+    % load nrrd and smooth
+    [Data, meta] = nrrdread([full_dir_path, filesep, filename, ipars.im_format]);
 
-% optional extra editing
-if ipars.medfilt_flag
-    Data = medfilt3(double(Data), ipars.medfilt);
+    % optional extra editing
+    if ipars.medfilt_flag
+        Data = medfilt3(double(Data), ipars.medfilt);
+    end
+
+    Data_smooth = double(Data);
+    Data_smooth(ipars.padval >= Data_smooth) = nan;
+    Data_smooth = imblur(Data_smooth, ipars.sig, ipars.siz, 3);
+    im_size = size(Data_smooth);
+
+    ipars.z_slices_per_int_ths(end) = im_size(end);
+
+    [Data_mask, ipars.int_ths_per_z] = generate_binary_mask(ipars.input_int_ths, ...
+        ipars.z_slices_per_int_ths, Data_smooth);
+
+    % plot results so far
+    displayresults(Data_smooth, Data_mask, ipars)
+
+    % Edit manually input_int_ths by looking at the intensity in plotted planes
+    edit threshold_ims_maninput
+    keyboard
+
+    % save image
+    if ipars.medfilt_flag
+        Data = Data.*double(Data_mask);   
+    else
+        Data = Data.*uint16(Data_mask);   
+    end
+
+    nrrdWriter([oDir, filesep, filename, ipars.im_format], ...
+        mat2uint16(Data), nrrdread_res(meta), [0 0 0], 'gzip');
+
 end
-
-Data_smooth = double(Data);
-Data_smooth(ipars.padval >= Data_smooth) = nan;
-Data_smooth = imblur(Data_smooth, [10 10 5], [20 20 10], 3);
-im_size = size(Data_smooth);
-
-ipars.z_slices_per_int_ths(end) = im_size(end);
-ipars.default_planes = [10 30 50 70 100 130 170 200 230];
-
-[Data_mask, ipars.int_ths_per_z] = generate_binary_mask(ipars.input_int_ths, ...
-    ipars.z_slices_per_int_ths, Data_smooth);
-
-% plot results so far
-displayresults(Data_smooth, Data_mask, ipars)
-
-keyboard
-% Edit manually input_int_ths by looking at the intensity in plotted planes
-%   ipars.input_int_ths = [75 75 75 90 95];
-% and re-run
-%   [Data_mask, ipars.int_ths_per_z] = generate_binary_mask(ipars.input_int_ths, ipars.z_slices_per_int_ths, Data_smooth);
-%   displayresults(Data_smooth, Data_mask, ipars)
-
-% save image
-if ipars.medfilt_flag
-    Data = Data.*double(Data_mask);   
-else
-    Data = Data.*uint16(Data_mask);   
-end
-
-nrrdWriter([oDir, filesep, filename, ipars.im_format], ...
-    mat2uint16(Data), nrrdread_res(meta), [0 0 0], 'gzip');
 
 end
 
@@ -235,14 +248,15 @@ function displayresults(Data_smooth, Data_mask, ipars)
 figH = figure('Position', genfigpos(1, [], [1600 900]));
 colormap(jet)
 
-for i = 1:9
+for i = 1:numel(ipars.default_planes)
     
     axH(i) = subplot(3, 3, i);
     imagesc(Data_smooth(:, :, ipars.default_planes(i)), 'Parent', axH(i));
     hold(axH(i), 'on')
     contour(Data_mask(:, :, ipars.default_planes(i)) > 0, 1, ...
         'color', 'k', 'Linewidth', 2, 'Parent', axH(i));
-    axH(i).Title.String = ['Int ths: ', num2str(ipars.int_ths_per_z(ipars.default_planes(i)))];
+    axH(i).Title.String = ['Plane ', num2str(ipars.default_planes(i)), ...
+        ' Int ths: ', num2str(ipars.int_ths_per_z(ipars.default_planes(i)))];
     colorbar(axH(i))
     
 end

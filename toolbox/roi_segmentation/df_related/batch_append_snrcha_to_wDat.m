@@ -122,7 +122,7 @@ function wDat = get_avg_snr(wDat, filename, ...
         stat2use, sign2use, iDir, ...
         bs_range, sti_range, stim2use, ...
         chunk_size, corenumber, fisuffix)
-% get_avg_snr: get SNR of green channel
+% get_avg_snr: get median SNR of green channel
 %
 % Usage:
 %   get_avg_snr(wDat, filename, ...
@@ -216,9 +216,11 @@ for sti_i = 1:numel(stim2use)
             stim_snr_p_sti(:, :, sti_i) = ...
                 median(stim_snr, length(siz));
         end
+        
     catch
        keyboard 
     end
+    
 end
 
 wDat.GreenChaSNR = stim_snr_p_sti;
